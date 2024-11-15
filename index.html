@@ -1,0 +1,113 @@
+<html>
+  <head>
+    <style>
+      #results {
+        position: fixed;
+        top: 50px;
+        left: 10px;
+        color: white;
+      }
+
+      #results span {
+        margin: 5px 5px;
+      }
+
+      video {
+        position: fixed;
+        top: 0;
+        left: 0;
+      }
+
+      h1 {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+      }
+
+      button {
+        position: fixed;
+        top: 0;
+        left: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Basic Cloud Vision (Google) Demo -->
+
+    <!-- Load TensorFlow.js. This is required to use coco-ssd model. -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <!-- Load the coco-ssd model. -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+
+    <video autoplay="true" id="videoElement"></video>
+    <button id="vision_button">Analyze</button>
+    <div id="results"></div>
+
+    <script>
+      // Access camera
+      var video = document.querySelector("#videoElement");
+      if (navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices
+          .getUserMedia({ video: true })
+          .then(function (stream) {
+            video.srcObject = stream;
+          })
+          .catch(function (err) {
+            console.log("Something went wrong!");
+          });
+      }
+
+      // We only get to work when the vision button is clicked
+      document
+        .querySelector("#vision_button")
+        .addEventListener("click", (evt) => {
+          // extract image as base64, scale it down to reduce data transfer speed
+          var scale = 0.25;
+          var canvas = document.createElement("canvas");
+          canvas.width = video.videoWidth * scale;
+          canvas.height = video.videoHeight * scale;
+          canvas
+            .getContext("2d")
+            .drawImage(video, 0, 0, canvas.width, canvas.height);
+
+          // dataUrl contains base64 version of image
+          var dataUrl = canvas.toDataURL();
+
+          // Send image to google to analyze
+
+          // Create an image element from the dataUrl
+          var img = new Image();
+          img.src = dataUrl;
+
+          // Wait for the image to load before passing it to the model
+          img.onload = function () {
+            // Load the model
+            cocoSsd.load().then((model) => {
+              // Detect objects in the loaded image element
+              model
+                .detect(img)
+                .then((predictions) => {
+                  console.log(predictions);
+                  results.innerHTML = "";
+                  predictions.forEach((prediction) => {
+                    let description = document.createElement("span");
+                    let score = document.createElement("span");
+
+                    let div = document.createElement("div");
+                    description.innerText = prediction.class;
+                    score.innerText = prediction.score;
+
+                    div.append(description, score);
+
+                    results.append(div);
+                  });
+                })
+                .catch((error) => {
+                  console.error("Error: ", error);
+                });
+            });
+          };
+        });
+    </script>
+  </body>
+</html>
